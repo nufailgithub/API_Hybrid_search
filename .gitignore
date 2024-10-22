@@ -1,0 +1,17 @@
+# Large data files
+data/meta_Digital_Music.jsonl
+data/amazon_products.jsonl
+
+# IDE files
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# System files
+.DS_Store
+Thumbs.db
