@@ -1,0 +1,126 @@
+<!-- app/templates/results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            transition: box-shadow 0.3s;
+        }
+        li:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        p {
+            color: #555;
+        }
+        #search-form {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product Results</h1>
+
+    <!-- Search Form -->
+    <form id="search-form">
+        <input type="text" id="search-input" placeholder="Search for products...">
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="product-results">
+        <!-- JSON results will be displayed here -->
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent form submission
+            const searchQuery = document.getElementById('search-input').value;
+
+            // Fetch search results from the API
+            fetch(`http://localhost:8000/search/${encodeURIComponent(searchQuery)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the JSON data in the HTML
+                const resultsContainer = document.getElementById('product-results');
+                // resultsContainer.innerHTML = `<pre>${JSON.stringify(data.results, null, 2)}</pre>`;
+                // Clear the container first
+                resultsContainer.innerHTML = '';
+
+                // Loop through the array of objects (data.results)
+                data.results.forEach(product => {
+                    // Create a div to hold the JSON formatted product
+                    const productDiv = document.createElement('div');
+                    productDiv.classList.add('product');
+
+                    // Create a pre tag to format the JSON display
+                    const productPre = document.createElement('pre');
+                    productPre.textContent = JSON.stringify(product, null, 2); // Pretty print JSON
+
+                    // Create an img tag to display the product image (use the 'large' image for display)
+                    const productImage = document.createElement('img');
+                    if (product.images && product.images.length > 0) {
+                        productImage.src = product.images[0].large; // Use the 'large' image variant
+                        productImage.alt = product.title || 'Product Image'; // Set alt text as product title
+                        productImage.style.maxWidth = '200px'; // You can adjust the width of the image
+                    }
+
+                    // Append the pre tag to the product div
+                    productDiv.appendChild(productImage);
+                    productDiv.appendChild(productPre);
+
+                    // Append the product div to the results container
+                    resultsContainer.appendChild(productDiv);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching products:', error);
+            });
+        });
+    </script>
+</body>
+</html>
