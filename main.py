@@ -10,8 +10,18 @@ from torchvision import models, transforms
 from PIL import Image
 import numpy as np
 from typing import List, Dict, Union
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load a pre-trained ResNet model for image feature extraction
 resnet = models.resnet50(weights='IMAGENET1K_V1')
@@ -85,7 +95,7 @@ image_vectors = []
 
 for product in products:
     # Process descriptions
-    desc = product.get('description', '')
+    desc = product.get('title', '')
     processed_desc = preprocess_description(desc)
     product_descriptions.append(processed_desc)
 
