@@ -5,8 +5,7 @@ from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
-import torch
-from torchvision import models, transforms
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from PIL import Image
 import numpy as np
 from typing import List, Dict, Union
@@ -23,28 +22,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load a pre-trained ResNet model for image feature extraction
-resnet = models.resnet50(weights='IMAGENET1K_V1')
-resnet.eval()  # Set the model to evaluation mode
-
-# Image preprocessing (resize, normalize for ResNet)
-preprocess = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+# 2. Load the Moondream2 model and tokenizer
+model_id = "vikhyatk/moondream2"
+revision = "2024-07-23"
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    trust_remote_code=True,
+    revision=revision
+)
+tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
 
 
 def extract_image_vector(image_path: str):
-    """Extract feature vector from an image using ResNet."""
+    """Extract feature vector from an image using MoonDream."""
     img = Image.open(image_path).convert("RGB")
-    img_tensor = preprocess(img).unsqueeze(0)  # Add batch dimension
-
-    with torch.no_grad():
-        features = resnet(img_tensor)
-
-    return features.squeeze().numpy()  # Convert to NumPy array
+    enc_image = model.encode_image(img)
+    return enc_image
 
 
 def load_products():
