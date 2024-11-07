@@ -15,12 +15,12 @@ parser = argparse.ArgumentParser(description='Image search application')
 parser.add_argument('--image-folder', type=str, default='images', help='Path to the folder containing the images')
 args = parser.parse_args()
 
-
 app = Flask(__name__)
 
 # Configure LanceDB and load the image search table
 registry = EmbeddingFunctionRegistry.get_instance()
 clip = registry.get("open-clip").create(max_retries=0)
+
 
 class Media(LanceModel):
     vector: Vector(clip.ndims()) = clip.VectorField()
@@ -32,6 +32,7 @@ class Media(LanceModel):
 
 
 db = lancedb.connect(f"database")
+
 
 def is_valid_file(file_path):
     """
@@ -78,23 +79,31 @@ def get_valid_table_name(folder_path):
     table_name = table_name.strip('_')
     return table_name
 
+
 image_folder_path = args.image_folder
 table_name = get_valid_table_name(image_folder_path)
 
 if table_name in db:
     print("--------")
-    print(f'Table {table_name} exists already. If you want to create a new table with same name, please rename your folder or delete existing table from database/folder_name.lance')
+    print(
+        f'Table {table_name} exists already. If you want to create a new table with same name, please rename your folder or delete existing table from database/folder_name.lance')
     print("--------")
     table = db[table_name]
 else:
     try:
         print("Creating new table...")
         table = db.create_table(table_name, schema=Media, mode="overwrite")
-        
+
         p = Path(image_folder_path).expanduser()
-        uris = [str(f.absolute()) for f in p.iterdir() if is_valid_file(f)]
-        
-        table.add(pd.DataFrame({"image_uri": uris}))
+        image_data = []
+        for file_path in p.iterdir():
+            if is_valid_file(file_path):
+                # Convert to UTF-8 encoded string
+                utf8_path = str(file_path).encode("utf-8", errors="ignore").decode("utf-8")
+                image_data.append(utf8_path)
+                print("ImageDATA :", image_data)
+                print(f"Adding image URI: {utf8_path}")
+        table.add(pd.DataFrame({"image_uri": image_data}))
     except Exception as e:
         print('here')
         if image_folder_path in db:
@@ -108,30 +117,32 @@ def image_search():
         search_query = request.form.get('search')
         query_image = request.files.get('image')
         image_url = request.form.get('image_url')
-        
+
         if search_query:
             # Perform text-based image search
-            rs = table.search(search_query).limit(40).to_pydantic(Media)
-            results = [{'image_uri': item.image_uri} for item in rs]
+            rs = table.search(search_query).limit(2).to_pydantic(Media)
+            results = [{'image_uri': item.image_uri.replace('\\', '/')} for item in rs]
         elif query_image:
             # Perform image-based search
             query_image = Image.open(query_image)
-            rs = table.search(query_image).limit(40).to_pydantic(Media)
-            results = [{'image_uri': item.image_uri} for item in rs]
+            rs = table.search(query_image).limit(2).to_pydantic(Media)
+            results = [{'image_uri': item.image_uri.replace('\\', '/')} for item in rs]
         elif image_url:
             # Perform image-based search using the URL
             image_path = image_url.replace(request.host_url + 'images/', '')
             decoded_image_path = urllib.parse.unquote(image_path)
             query_image = Image.open(os.path.join(image_folder_path, decoded_image_path))
-            rs = table.search(query_image).limit(40).to_pydantic(Media)
-            results = [{'image_uri': item.image_uri} for item in rs]
+            rs = table.search(query_image).limit(2).to_pydantic(Media)
+            results = [{'image_uri': item.image_uri.replace('\\', '/')} for item in rs]
 
     return render_template('image_search.html', results=results)
+
 
 @app.route('/images/<path:filename>')
 def serve_image(filename):
     # mention the folder name here
     return send_from_directory(image_folder_path, filename)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)

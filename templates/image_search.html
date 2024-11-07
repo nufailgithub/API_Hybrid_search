@@ -236,12 +236,13 @@
         <div class="gallery-container fade-in">
             {% for result in results %}
                 <div class="gallery-item">
-                    <img src="{{ url_for('serve_image', filename=result.image_uri.split('/')[-1]) }}" alt="Image" class="tweet-image aspect-ratio" onclick="openModal(this)">
+                    <img src="{{ result.image_uri }}" alt="Image" class="tweet-image aspect-ratio" onclick="openModal(this)">
+{#                    <img src="{{ url_for('serve_image', filename=result.image_uri.split('/')[-1]) }}" alt="Image" class="tweet-image aspect-ratio" onclick="openModal(this)">#}
                 </div>
             {% endfor %}
         </div>
     {% endif %}
-    
+
 
     <script>
         var modal = document.getElementById("image-modal");
